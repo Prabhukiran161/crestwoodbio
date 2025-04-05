@@ -1,0 +1,5 @@
+# Ignore node_modules (for JS projects)
+node_modules/
+
+# evn variables
+.env

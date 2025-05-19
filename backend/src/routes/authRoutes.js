@@ -1,5 +1,5 @@
-import express from "express";
-import { registerUser, loginUser, requestOTP , verifyOTPAndResetPassword , logoutUser } from "../controllers/authController.js";
+  import express from "express";
+import { registerUser, loginUser, requestOTP , verifyOTPAndResetPassword , logoutUser, getUserProfile } from "../controllers/authController.js";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import ActivityLog from "../models/ActivityLog.js";
@@ -51,7 +51,9 @@ router.get(
         userAgent: req.headers["user-agent"] || "Unknown",
       });
 
-      return res.json({ message: "Google login successful!", token, user: req.user });
+      // return res.json({ message: "Google login successful!", token, user: req.user });
+      const redirectURL = `${process.env.CLIENT_URL}/google-success?token=${token}`;
+      return res.redirect(redirectURL);
     } catch (error) {
       console.error("❌ Google Callback Error:", error.message);
       return res.status(500).json({ message: "Server error" });
@@ -63,9 +65,7 @@ router.get(
  * ✅ User Profile Route (Protected)
  * - Requires authentication
  */
-router.get("/profile", authenticateUser, (req, res) => {
-  res.json({ message: "User profile", user: req.user });
-});
+router.get("/profile", authenticateUser, getUserProfile);
 
 // Forgot Password - Request OTP
 router.post("/request-otp", requestOTP);

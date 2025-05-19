@@ -5,6 +5,9 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import authRoutes from "./routes/authRoutes.js";
+import recordingRoutes from "./routes/recordingRoutes.js";
+import libraryRoutes from "./routes/libraryRoutes.js";
+import formRoutes from "./routes/formRoutes.js";
 import passport from "./config/passport.js";
 import pool from "./config/dbPostgres.js";
 import connectMongoDB from "./config/dbMongo.js";
@@ -44,7 +47,14 @@ app.use(passport.session());
 
 // ✅ Middleware Configuration
 app.use(cookieParser()); // Parse cookies
-app.use(cors({ origin: "*", credentials: true })); // Allow CORS
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+); // Allow CORS
 app.use(morgan("dev")); // Log HTTP requests
 app.use(logMiddleware); // ✅ Auto-logs all requests
 
@@ -53,6 +63,12 @@ connectMongoDB();
 
 // ✅ Routes
 app.use("/auth", authRoutes);
+
+app.use("/recordings", recordingRoutes);
+
+app.use("/library", libraryRoutes);
+
+app.use("/introduction", formRoutes);
 
 // ✅ Default Route
 app.get("/", (req, res) => {

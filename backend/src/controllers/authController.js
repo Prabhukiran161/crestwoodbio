@@ -33,7 +33,7 @@ export const registerUser = async (req, res) => {
     const { rows } = await pool.query(insertQuery, values);
     const user = rows[0];
 
-    res.status(201).json({ message: "User registered successfully!", user });
+    res.status(201).json({user, message: "User registered successfully!",  success: true,});
   } catch (error) {
     console.error("Registration Error:", error);
     res.status(500).json({ message: "Server error", error });
@@ -130,7 +130,7 @@ export const verifyOTPAndResetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
-    // Fetch stored OTP
+    // 1. Check OTP in MongoDB
     const otpRecord = await OTPModel.findOne({ email });
 
     if (
@@ -141,13 +141,18 @@ export const verifyOTPAndResetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // Hash new password
+    // 2. Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update user password
-    await User.findOneAndUpdate({ email }, { password: hashedPassword });
+    // 3. Update password in PostgreSQL using pool.query
+    const updateQuery = `
+      UPDATE users
+      SET password = $1
+      WHERE email = $2
+    `;
+    await pool.query(updateQuery, [hashedPassword, email]);
 
-    // Remove OTP record
+    // 4. Delete OTP from MongoDB
     await OTPModel.deleteOne({ email });
 
     res.json({ message: "Password reset successfully!" });
@@ -263,5 +268,28 @@ export const logoutUser = async (req, res) => {
   } catch (error) {
     console.error("❌ Logout error:", error);
     return res.status(500).json({ message: "Server error during logout" });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const { id } = req.user;
+
+    const result = await pool.query(
+      "SELECT id, name, email, google_id, created_at FROM users WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "User profile",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Error fetching user profile:", error.message);
+    res.status(500).json({ message: "Server error" });
   }
 };
